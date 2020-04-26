@@ -2,7 +2,7 @@
 """
 Created on Sun Feb 16 12:56:18 2020
 
-@author: USER
+@author: Tony
 """
 import pandas as pd
 import datetime
@@ -85,7 +85,7 @@ class find_ticker:
         # when using expand=True, the split elements will expand out into separate columns
         # and their columns are column index object 
         #\u3000 is a unicode in python 
-        EMG_clean = self.raw_EMG['有價證券代號及名稱'].str.split('\u3000',expand=True)   
+        EMG_clean = self.raw_EMG['有價證券代號及名稱'].str.split('\u3000',expand=True)[1:]   
         EMG_clean.columns = ['ticker','name']
         EMG_clean['industry'] =self.raw_EMG['產業別']
         EMG_clean['exchange'] = self.raw_EMG['市場別']
@@ -148,12 +148,13 @@ class find_ticker:
         return dic
 
     def new_public(self):
-        self.all_df['public date'] = self.all_df['public date'].apply(lambda x: datetime.datetime.strptime(x,'%Y/%m/%d').date())       
-        new_public_df = self.all_df.loc[(self.all_df['public date'] == self.today )&(self.all_df['category'].isin(['股票','ETF','ETN','臺灣存託憑證(TDR)','臺灣存託憑證','特別股','受益證券-不動產投資信託']))]
+        self.all_clean['public date'] = self.all_clean['public date'].apply(lambda x: datetime.datetime.strptime(x,'%Y/%m/%d').date())       
+        new_public_df = self.all_clean.loc[(self.all_clean['public date'] == self.today )&(self.all_clean['category'].isin(['股票','ETF','ETN','臺灣存託憑證(TDR)','臺灣存託憑證','特別股','受益證券-不動產投資信託']))]
         if new_public_df.empty:
-            self.new_public_df = '沒有新股票上市櫃'
+            print('沒有新股票上市櫃')
         else:
+            print('有新股票上市櫃')
             self.new_public_df = new_public_df
 if __name__ == '__main__':
     test = find_ticker()
-    test.user_input()
+    test.new_public()
