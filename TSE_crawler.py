@@ -39,18 +39,16 @@ class TaiwanDP:
         except:
             print("Pandas can't find any table in this url !!!!!")
             return None
-
-        df.columns = ['ticker', '名稱', '收盤價', '漲跌價差', 
-                        '開盤價', '最高價','最低價','成交股數','成交金額',
-                        '成交筆數','最後揭示買價', '最後揭示賣價', 
-                        '發行股數', '次日漲停價', '次日跌停價']
-
+        df.columns = df.columns.droplevel(0)
+        df.rename(columns={"代號":"ticker"},inplace=True)
+       
+        
         #parse data
         df['date'] = pd.to_datetime(datetime.date(*date_tuple))
         df = df.set_index(['ticker', 'date'])
         df = df.apply(lambda x: pd.to_numeric(x, errors='coerce'))
         df = df.dropna(axis=1, how='all')
-        df = df[~df['收盤價'].isnull()]
+        df = df[~df['收盤'].isnull()]
 
         return df
     def get_tse_data(self, date_tuple):
@@ -428,8 +426,8 @@ class TaiwanDP:
         return print('UPDATE SUCCESS!!!')
 if __name__ == '__main__':
     tse_crawler_test = TaiwanDP()
-    tse_crawler_test.connect_db(r"C:\Users\user\Downloads\data.db",'2020-04-23','2018-04-26')
+    tse_crawler_test.connect_db(r"C:\Users\user\Downloads\data.db",'2020-04-25','2020-05-01')
     tse_crawler_test.update_table('daily_price_otc',tse_crawler_test.get_otc_data)
-   # tse_crawler_test.update_table('daily_price',tse_crawler_test.get_tse_data)
+    tse_crawler_test.update_table('daily_price',tse_crawler_test.get_tse_data)
     
     #tse_crawler_test.update_table('daily_price_otc',tse_crawler_test.get_otc_data)
