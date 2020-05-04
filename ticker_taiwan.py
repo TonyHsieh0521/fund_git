@@ -6,7 +6,7 @@ Created on Sun Feb 16 12:56:18 2020
 """
 import pandas as pd
 import datetime
-
+import requests
 class find_ticker:
     
     today = datetime.date.today()
@@ -20,6 +20,12 @@ class find_ticker:
         target_df = self.all_df.loc[self.all_df['category'].isin(['股票','特別股','ETF','臺灣存託憑證(TDR)','受益證券-不動產投資信託','臺灣存託憑證','ETN'])]
         self.all_ticker = list(target_df['ticker'] + '.' + target_df['exchange'])
         self.all_clean = target_df
+        day_trade_df = self.day_trading_allowed()
+        day_trade_df['有無當沖'] = ['有']*len(day_trade_df)
+        self.all_clean = self.all_clean.merge(day_trade_df,
+                                        how='left')
+        self.all_clean['有無當沖'] = self.all_clean['有無當沖'].fillna('無')
+        
     def TSE_scrape(self):
         self.raw_TSE = pd.read_html('http://isin.twse.com.tw/isin/C_public.jsp?strMode=2'
                            ,encoding = 'Big5-HKSCS',header=0)[0]
@@ -52,7 +58,7 @@ class find_ticker:
         OTC_clean = self.raw_OTC['有價證券代號及名稱'].str.split('\u3000',expand=True)
         
         #when OTC_clean expand the ticker name into two column. On the webpage
-        #when the row representing the category. ticker will be None and name
+        #when the row representing the category, ticker will be None and name
         # is that category. So I use this as a index to seperate different asset
         #type.
         typelist = [x == None and  y in self.OTC_category_list for x,y in zip(OTC_clean[1],OTC_clean[0])]
@@ -104,8 +110,8 @@ class find_ticker:
             user_df = pd.concat([user_df,item],axis=0,sort=False)
         for key,item in self.OTC_dic.items():
             user_dfo = pd.concat([user_dfo,item],axis=0,sort=False)
-        
         self.all_df = pd.concat([user_df,user_dfo,self.EMG_clean],axis=0,sort=False)
+        
     def user_input(self):
         '''set attribute user dataframe'''
         print('enter: ',*set(self.all_df['exchange']),'or all')
@@ -155,6 +161,26 @@ class find_ticker:
         else:
             print('有新股票上市櫃')
             self.new_public_df = new_public_df
+    
+    @staticmethod
+    def day_trading_allowed():
+        '''return a two column dataframe that can be day traded. first column
+        is ticker and second is ticker name
+        '''
+        date = str(datetime.date.today() + datetime.timedelta(days=1)).replace('-','')
+        url = 'https://www.twse.com.tw/exchangeReport/TWTB4U'
+        params = {
+            'response':'html',
+            'date':date,
+            'selectType':'All'
+        }
+        r = requests.get(url,params)
+        df = pd.read_html(r.text)[0]
+        df.columns = df.columns.droplevel(0)
+        df = df.iloc[:,0:2]
+        df.columns = ['ticker','name']
+        return df
+    
 if __name__ == '__main__':
     test = find_ticker()
-    test.new_public()
+   
